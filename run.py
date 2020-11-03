@@ -3,8 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import xlsxwriter
 import argparse
-import time
-
 
 class Book:
     pass
