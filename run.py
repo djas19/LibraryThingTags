@@ -62,7 +62,7 @@ def getBooks(isbns, threshold):
             print("looking for work: {}".format(isbn))
             # url = "https://www.librarything.com/isbn/{}".format(isbn)
             url = "https://www.librarything.com/work/{}".format(isbn)
-            page = requests.get(url)
+            page = requests.get(url, verify=False)
             soup = BeautifulSoup(page.content, 'html.parser')
 
             title = soup.find("meta", property="og:title")
@@ -80,9 +80,6 @@ def getBooks(isbns, threshold):
             print("title: " + book.title)
             book.tags = getTags(book.workId, threshold)
             books.append(book)
-            if i % 5 == 0:
-                time.sleep(120)
-            break
         except TypeError:
             print("TypeError occured WAITING...")
             time.sleep(480)
@@ -92,20 +89,20 @@ def getBooks(isbns, threshold):
 def getTags(workID, threshold):
     url = "http://www.librarything.com/ajaxinc_showbooktags.php?work={}&all=1&print=1&doit=1&lang=\"+lang".format(
         workID)
-    page = requests.get(url)
+    page = requests.get(url, verify=False)
     soup = BeautifulSoup(page.content, 'html.parser')
     tags = soup.find_all("span", class_="tag")
     tagCollection = []
-    # TODO: return 6 most used tags
     for unparsedTag in tags:
         tag = Tag()
         tag.content = unparsedTag.find("a").text
         tagcounttext = unparsedTag.find("span", class_="count").text
         countString = tagcounttext[tagcounttext.find("(") + 1:tagcounttext.find(")")]
         tag.count = int(countString.replace(',', ''))
-        if tag.count > threshold and tag.content != '':
-            print(vars(tag))
+        if tag.content != '':
             tagCollection.append(tag)
+        tagCollection.sort(key=lambda x: x.count, reverse=True)
+    tagCollection = tagCollection[:6]
 
     return tagCollection
 
