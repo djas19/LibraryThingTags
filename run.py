@@ -16,7 +16,7 @@ class Tag:
 
 INPUT = "input.txt"
 OUTPUT = "output.xlsx"
-THRESHOLD = 5
+NUMBEROFTAGS = 6
 
 
 def main():
@@ -28,65 +28,46 @@ def main():
         "--destination", help="Name of the output file", default=OUTPUT
     )
     parser.add_argument(
-        "--tagThreshold", help="Optional archive folder", default=THRESHOLD
+        "--numberOfTags", help="number of n most used tags to save", default=NUMBEROFTAGS
     )
     args = parser.parse_args()
     source = args.source
     destination = args.destination
-    threshold = int(args.tagThreshold)
-
-    # books = getBooks([3353173], threshold)
-    books = getBooks([5403381, 92619, 1118065, 1888520, 880777, 8300098, 8384326, 8461488, 8024489], threshold)
-    # books = getBooks(
-    #     [9789082745245, 9789401613071, 9789059248229, 9789000375554, 9789403139005, 5053083203733, 8719372009246,
-    #      8717418561383, 9789463830690, 9780691016924,
-    #      9789463104760,
-    #      9780751579949,
-    #      9781529331660,
-    #      9780241436455,
-    #      9780525648154,
-    #      9780718183240,
-    #      9780241989524,
-    #      9781526621979,
-    #      9781119663706,
-    #      9780241984994,
-    #      9789002268731], threshold)
+    numberOfTags = args.numberOfTags
+    workIds = getIDs(source)
+    books = getBooks(workIds, numberOfTags)
+    # books = getBooks([5403381, 92619, 1118065, 1888520, 880777, 8300098, 8384326, 8461488, 8024489], numberOfTags)
     writeToExcel(books, destination)
 
 
-def getBooks(isbns, threshold):
+def getBooks(isbns, numberOfTags):
     books = []
     for i, isbn in enumerate(isbns):
-        try:
-            # work: 5403381     isbn: 9789076174082
-            print("looking for work: {}".format(isbn))
-            # url = "https://www.librarything.com/isbn/{}".format(isbn)
-            url = "https://www.librarything.com/work/{}".format(isbn)
-            page = requests.get(url, verify=False)
-            soup = BeautifulSoup(page.content, 'html.parser')
+        print("looking for work: {}".format(isbn))
+        # url = "https://www.librarything.com/isbn/{}".format(isbn)
+        url = "https://www.librarything.com/work/{}".format(isbn)
+        page = requests.get(url, verify=False)
+        soup = BeautifulSoup(page.content, 'html.parser')
 
-            title = soup.find("meta", property="og:title")
-            isbn = soup.find("meta", property="books:isbn")
-            workID = soup.find("meta", property="og:url")
-            workIDContent = workID["content"]
-            workIDContentSplit = workIDContent.split("/")[4]
-            book = Book()
-            book.title = title["content"]
-            book.isbn = isbn["content"]
-            book.workId = workIDContentSplit
+        title = soup.find("meta", property="og:title")
+        isbn = soup.find("meta", property="books:isbn")
+        workID = soup.find("meta", property="og:url")
+        workIDContent = workID["content"]
+        workIDContentSplit = workIDContent.split("/")[4]
+        book = Book()
+        book.title = title["content"]
+        book.isbn = isbn["content"]
+        book.workId = workIDContentSplit
 
-            print("workID: " + book.workId)
-            print("isbn: " + book.isbn)
-            print("title: " + book.title)
-            book.tags = getTags(book.workId, threshold)
-            books.append(book)
-        except TypeError:
-            print("TypeError occured WAITING...")
-            time.sleep(480)
+        print("workID: " + book.workId)
+        print("isbn: " + book.isbn)
+        print("title: " + book.title)
+        book.tags = getTags(book.workId, numberOfTags)
+        books.append(book)
     return books
 
 
-def getTags(workID, threshold):
+def getTags(workID, numberOfTags):
     url = "http://www.librarything.com/ajaxinc_showbooktags.php?work={}&all=1&print=1&doit=1&lang=\"+lang".format(
         workID)
     page = requests.get(url, verify=False)
@@ -102,7 +83,7 @@ def getTags(workID, threshold):
         if tag.content != '':
             tagCollection.append(tag)
         tagCollection.sort(key=lambda x: x.count, reverse=True)
-    tagCollection = tagCollection[:6]
+    tagCollection = tagCollection[:numberOfTags]
 
     return tagCollection
 
@@ -127,6 +108,15 @@ def writeToExcel(books, output):
 
     print("Writing to excel...")
     workbook.close()
+
+
+def getIDs(source):
+    ids = []
+    with open(source, "rt") as f:
+        for line in f:
+            ids.append(line.strip())
+    print(ids)
+    return ids
 
 
 if __name__ == "__main__":
