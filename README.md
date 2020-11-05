@@ -1,6 +1,6 @@
 # LibraryThingTagScraper
 
-This is a small Python script created to extract all tags for a given list of ISBN numbers to an Excel sheet.
+This is a small Python script created to extract all tags for a given list of workID's to an Excel sheet.
 
 ## Getting Started
 ```
